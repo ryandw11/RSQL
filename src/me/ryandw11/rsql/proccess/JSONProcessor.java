@@ -10,12 +10,16 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.internal.LinkedTreeMap;
+import com.google.gson.reflect.TypeToken;
 
 public class JSONProcessor {
 	
@@ -30,8 +34,22 @@ public class JSONProcessor {
 			}
 		}
 		
-		Gson gson = new Gson();
-		String json = gson.toJson(objs);
+		Class<?> clazz = objs.get(0).getClass(); 
+		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//		JSONTables jst = (JSONTables) gson.fromJson(this.getJSONString(file), JSONTables.class);
+		JSONTables jst = (JSONTables) gson.fromJson(this.getJSONString(file), new TypeToken<JSONTables>() {}.getType());
+		Map<String, List<Object>> current;
+		try {
+			current = jst.getObjectList();
+		}catch (NullPointerException ex) {
+			current = new HashMap<String, List<Object>>();
+		}
+		System.out.println(current);
+		if(current.containsKey(clazz.getSimpleName()))
+			current.remove(clazz.getSimpleName());
+		current.put(clazz.getSimpleName(), objs);
+		
+		String json = gson.toJson(new JSONTables().setObjectList(current));
 		FileWriter fileWriter;
 		try {
 			fileWriter = new FileWriter(file);
@@ -59,10 +77,10 @@ public class JSONProcessor {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println(json);
 		Gson gson = new Gson();
-		List<Object> ob = gson.fromJson(json, List.class);
-		
+		JSONTables jst = (JSONTables) gson.fromJson(json, JSONTables.class);
+		Map<String, List<Object>> obs = jst.getObjectList();
+		List<Object> ob = obs.get(clazz.getSimpleName());
 		List<Object> output = new ArrayList<>();
 		for(Object o : ob) {
 			Object obj = null;
@@ -77,9 +95,20 @@ public class JSONProcessor {
 			int i = 0;
 			for(Field f : clazz.getFields()) {
 				try {
-					f.set(obj, ob.get(i));
+					System.out.println(((LinkedTreeMap<?, ?>) o).get(f.getName()).getClass().getTypeName());
+					System.out.println(f.getName() + ":" + f.getType().getName());
+					f.set(obj, ((LinkedTreeMap<?, ?>) o).get(f.getName()));//ob.get(i)
+					
 				} catch (IllegalArgumentException | IllegalAccessException e) {
-					//e.printStackTrace();
+					if(((LinkedTreeMap<?, ?>) o).get(f.getName()).getClass().getTypeName().equals("java.lang.Double")
+							&& f.getType().getTypeName().equals("int")) {
+						try {
+							f.set(obj, Integer.valueOf(((LinkedTreeMap<?, ?>) o).get(f.getName()).toString().split(".")[0]));
+						} catch (IllegalArgumentException | IllegalAccessException e1) {
+							e1.printStackTrace();
+						}
+					} else
+						e.printStackTrace();
 				}
 				i++;
 			}
@@ -88,6 +117,23 @@ public class JSONProcessor {
 		
 		return output;
 		
+	}
+	
+	private String getJSONString(File f) {
+		InputStream is = null;
+		try {
+			is = new FileInputStream(f);
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		}
+		String json = "";
+		try {
+			json = IOUtils.toString(is, "UTF-8");
+			is.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return json;
 	}
 
 }

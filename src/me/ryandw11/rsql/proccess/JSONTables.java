@@ -1,17 +1,18 @@
 package me.ryandw11.rsql.proccess;
 
 import java.util.List;
+import java.util.Map;
 
 public class JSONTables {
+	public Map<String, List<Object>> rsql;
 	
-	private List<Object> objs;
-	
-	public void setObjectList(List<Object> objs) {
-		this.objs = objs;
+	public JSONTables setObjectList(Map<String, List<Object>> objs) {
+		this.rsql = objs;
+		return this;
 	}
 	
-	public List<Object> getObjectList(){
-		return objs;
+	public Map<String, List<Object>> getObjectList(){
+		return rsql;
 	}
 
 }
