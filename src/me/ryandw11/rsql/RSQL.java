@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import me.ryandw11.rsql.orm.Column;
 import me.ryandw11.rsql.orm.Table;
 import me.ryandw11.rsql.proccess.JSONProcessor;
+import me.ryandw11.rsql.proccess.YAMLProcessor;
 import me.ryandw11.rsql.properties.Properties;
 import me.ryandw11.rsql.properties.RProperties;
 import me.ryandw11.rsql.properties.SQLProperties;
@@ -45,6 +46,10 @@ public class RSQL {
 			JSONProcessor jspro = new JSONProcessor(((JSONProperties) op).getFile());
 			jspro.proccessJSON(o);
 		}
+		if(type == Properties.YAML) {
+			YAMLProcessor ympro = new YAMLProcessor();
+			ympro.processYAML(o);
+		}
 	}
 	
 	public List<Object> get(Class<?> clazz){
@@ -54,6 +59,10 @@ public class RSQL {
 		if(type == Properties.JSON) {
 			JSONProcessor jspro = new JSONProcessor(((JSONProperties) op).getFile());
 			return jspro.getJSON(clazz);
+		}
+		if(type == Properties.YAML) {
+			YAMLProcessor ympro = new YAMLProcessor();
+			return ympro.getYAML(clazz);
 		}
 		return null;
 	}
