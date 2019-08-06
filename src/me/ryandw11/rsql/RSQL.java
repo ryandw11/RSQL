@@ -16,12 +16,14 @@ import java.util.regex.Pattern;
 
 import me.ryandw11.rsql.orm.Column;
 import me.ryandw11.rsql.orm.Table;
+import me.ryandw11.rsql.proccess.EXCELProcessor;
 import me.ryandw11.rsql.proccess.JSONProcessor;
 import me.ryandw11.rsql.proccess.YAMLProcessor;
 import me.ryandw11.rsql.properties.Properties;
 import me.ryandw11.rsql.properties.RProperties;
 import me.ryandw11.rsql.properties.SQLProperties;
 import me.ryandw11.rsql.properties.JSONProperties;
+import me.ryandw11.rsql.properties.ExcelProperties;
 
 /**
  * To handle SQL interaction for a special project.
@@ -33,11 +35,21 @@ public class RSQL {
 	private Properties type;
 	private RProperties op;
 	
+	/**
+	 * Defines what storage type is used.
+	 * @param op The property defines what storage type is used.
+	 */
 	public RSQL(RProperties op) {
 		this.type = op.getProperty();
 		this.op = op;
 	}
 	
+	/**
+	 * Process a list of the same table objects.<br>
+	 * Tables of other object types will not be changed.
+	 * <p><b>If a table current exists for that object, it will be overwritten.</b></p>
+	 * @param o The list of objects.
+	 */
 	public void process(List<Object> o) {
 		if(type == Properties.SQL) {
 			proccessSQL(o);
@@ -50,8 +62,18 @@ public class RSQL {
 			YAMLProcessor ympro = new YAMLProcessor();
 			ympro.processYAML(o);
 		}
+		if(type == Properties.EXCEL) {
+			EXCELProcessor expro = new EXCELProcessor((ExcelProperties) op);
+			expro.processExcel(o);
+		}
 	}
 	
+	/**
+	 * Get an object table from storage. <br>
+	 * Will return null if the file does not exist and/or if the data is invalid.
+	 * @param clazz The class you want to get data for.
+	 * @return The list of objects for the specified class.
+	 */
 	public List<Object> get(Class<?> clazz){
 		if(type == Properties.SQL) {
 			return this.getSQL(clazz);
@@ -63,6 +85,10 @@ public class RSQL {
 		if(type == Properties.YAML) {
 			YAMLProcessor ympro = new YAMLProcessor();
 			return ympro.getYAML(clazz);
+		}
+		if(type == Properties.EXCEL) {
+			EXCELProcessor expro = new EXCELProcessor((ExcelProperties) op);
+			return expro.getExcel(clazz);
 		}
 		return null;
 	}
