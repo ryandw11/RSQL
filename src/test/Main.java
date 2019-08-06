@@ -5,37 +5,41 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import me.ryandw11.rsql.RSQL;
+import me.ryandw11.rsql.properties.ExcelProperties;
 import me.ryandw11.rsql.properties.JSONProperties;
 import me.ryandw11.rsql.properties.RProperties;
 import me.ryandw11.rsql.properties.SQLProperties;
+import me.ryandw11.rsql.properties.YAMLProperties;
 
 public class Main {
 
 	public static void main(String[] args) {
-		RProperties p = new JSONProperties();
-		RSQL rsql = new RSQL(p);
-		ExampleTable ex2 = new ExampleTable(new Object());
-		ex2.id = 2;
-		ex2.name = "Test";
-		rsql.process(Arrays.asList(new ExampleTable(new Object()), ex2));
-		FunTable ft = new FunTable(new Object());
-		ft.name = "Test";
-		ft.desc = Arrays.asList("Yeet", "Totaly!");
-		rsql.process(Arrays.asList(ft));
+//		RSQL sql = new RSQL(new SQLProperties());
+//		RSQL json = new RSQL(new JSONProperties());
+//		
+//		sql.process(Arrays.asList(new FunTable().setName("Yeet").setDesc("This is [an] description's !", "Yep | it i`s", "Cool huh?")));
+//		json.process(Arrays.asList(new FunTable().setName("Yeet").setDesc("This is [an] description's !", "Yep | it i`s", "Yea it is!")));
+//		DoubleTrouble dt = new DoubleTrouble();
+//		dt.id = 4;
+//		dt.idouble = 22.40;
+//		json.process(Arrays.asList(dt));
+//		
+//		System.out.println(((FunTable) sql.get(FunTable.class).get(0)).desc);
+//		System.out.println(((FunTable) json.get(FunTable.class).get(0)).desc);
 		
-		List<Object> obj = rsql.get(FunTable.class);
-		List<FunTable> ex = new ArrayList<>();
-		for(Object o : obj) {
-			ex.add((FunTable) o);
-		}
-		System.out.println(ex.get(0).desc);
+		RSQL yaml = new RSQL(new ExcelProperties("example.xlsx"));
 		
-//		List<Object> obj = rsql.get(ExampleTable.class);
-//		List<ExampleTable> ex = new ArrayList<>();
-//		for(Object o : obj) {
-//			ex.add((ExampleTable) o);
-//		}
-//		System.out.println(ex.get(0).name);
+		yaml.process(Arrays.asList(new FunTable().setName("Yeet").setDesc("This is [an] description's !", "Yep | it i`s", "Cool huh?")));
+		DoubleTrouble dt = new DoubleTrouble();
+		dt.id = 4;
+		dt.idouble = 22.40;
+		DoubleTrouble dt2 = new DoubleTrouble();
+		dt2.id = 234;
+		dt2.idouble = 22.46;
+		yaml.process(Arrays.asList(dt, dt2));
+		
+		System.out.println(((FunTable) yaml.get(FunTable.class).get(0)).desc);
+		
 
 	}
 

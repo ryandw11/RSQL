@@ -3,6 +3,7 @@ package me.ryandw11.rsql;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ParameterizedType;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -11,13 +12,18 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import me.ryandw11.rsql.orm.Column;
 import me.ryandw11.rsql.orm.Table;
+import me.ryandw11.rsql.proccess.EXCELProcessor;
 import me.ryandw11.rsql.proccess.JSONProcessor;
+import me.ryandw11.rsql.proccess.YAMLProcessor;
 import me.ryandw11.rsql.properties.Properties;
 import me.ryandw11.rsql.properties.RProperties;
 import me.ryandw11.rsql.properties.SQLProperties;
+import me.ryandw11.rsql.properties.JSONProperties;
+import me.ryandw11.rsql.properties.ExcelProperties;
 
 /**
  * To handle SQL interaction for a special project.
@@ -29,28 +35,60 @@ public class RSQL {
 	private Properties type;
 	private RProperties op;
 	
+	/**
+	 * Defines what storage type is used.
+	 * @param op The property defines what storage type is used.
+	 */
 	public RSQL(RProperties op) {
 		this.type = op.getProperty();
 		this.op = op;
 	}
 	
+	/**
+	 * Process a list of the same table objects.<br>
+	 * Tables of other object types will not be changed.
+	 * <p><b>If a table current exists for that object, it will be overwritten.</b></p>
+	 * @param o The list of objects.
+	 */
 	public void process(List<Object> o) {
 		if(type == Properties.SQL) {
 			proccessSQL(o);
 		}
 		if(type == Properties.JSON) {
-			JSONProcessor jspro = new JSONProcessor();
+			JSONProcessor jspro = new JSONProcessor(((JSONProperties) op).getFile());
 			jspro.proccessJSON(o);
+		}
+		if(type == Properties.YAML) {
+			YAMLProcessor ympro = new YAMLProcessor();
+			ympro.processYAML(o);
+		}
+		if(type == Properties.EXCEL) {
+			EXCELProcessor expro = new EXCELProcessor((ExcelProperties) op);
+			expro.processExcel(o);
 		}
 	}
 	
+	/**
+	 * Get an object table from storage. <br>
+	 * Will return null if the file does not exist and/or if the data is invalid.
+	 * @param clazz The class you want to get data for.
+	 * @return The list of objects for the specified class.
+	 */
 	public List<Object> get(Class<?> clazz){
 		if(type == Properties.SQL) {
 			return this.getSQL(clazz);
 		}
 		if(type == Properties.JSON) {
-			JSONProcessor jspro = new JSONProcessor();
+			JSONProcessor jspro = new JSONProcessor(((JSONProperties) op).getFile());
 			return jspro.getJSON(clazz);
+		}
+		if(type == Properties.YAML) {
+			YAMLProcessor ympro = new YAMLProcessor();
+			return ympro.getYAML(clazz);
+		}
+		if(type == Properties.EXCEL) {
+			EXCELProcessor expro = new EXCELProcessor((ExcelProperties) op);
+			return expro.getExcel(clazz);
 		}
 		return null;
 	}
@@ -103,10 +141,13 @@ public class RSQL {
 			
 			ResultSet rs = statement.executeQuery("select * from " + name);
 			while(rs.next()) {
-				Constructor<?> ctor = clazz.getConstructor(Object.class);
-				Object obj = ctor.newInstance(new Object());
+				Constructor<?> ctor = clazz.getConstructor();
+				Object obj = ctor.newInstance();
 				for(Field f : fo) {
-					f.set(obj, rs.getObject(f.getName()));
+					if(rs.getObject(f.getName()) instanceof String && this.isList((String) rs.getObject(f.getName())))
+						f.set(obj, this.parseList((String) rs.getObject(f.getName())));
+					else
+						f.set(obj, rs.getObject(f.getName()));
 				}
 				output.add(obj);
 			}
@@ -164,6 +205,7 @@ public class RSQL {
 		return s;
 	}
 	
+	@SuppressWarnings("unchecked")
 	private String getValues(Object o) {
 		Class<? extends Object> clazz = o.getClass();
 		List<Field> columns = this.getColumns(clazz);
@@ -177,6 +219,13 @@ public class RSQL {
 					val = "'" + f.get(o).toString() + "'";
 				else
 					val = f.get(o).toString();
+				if(f.getType() == List.class) {
+					ParameterizedType listType = (ParameterizedType) f.getGenericType();
+			        Class<?> clz = (Class<?>) listType.getActualTypeArguments()[0];
+			        if(clz == String.class) {
+			        	val = this.generateList((List<String>) f.get(o));
+			        }
+				}
 				s += val;
 			} catch (IllegalArgumentException | IllegalAccessException e) {
 				e.printStackTrace();
@@ -204,7 +253,63 @@ public class RSQL {
 		if(f.getType() == double.class) {
 			return "double";
 		}
+		if(f.getType() == List.class) {
+			ParameterizedType listType = (ParameterizedType) f.getGenericType();
+	        Class<?> clazz = (Class<?>) listType.getActualTypeArguments()[0];
+	        if(clazz == String.class) {
+	        	return "string";
+	        }
+		}
 		return "string";
+	}
+	
+	/**
+	 * Generates a list to be used in sql.
+	 * @param list
+	 * @return
+	 */
+	private String generateList(List<String> list) {
+		String output = "'RSQLLIST[";
+		int i = 0;
+		for(String s : list) {
+			output += "`" + s.replace("'", "%$1$%").replace("`", "%$2$%").replace("\"", "%$3$%").replace("|", "%$4$%")
+					.replace("[", "%$5$%").replace("]", "%$6$%");
+			if(i < list.size() - 1)
+				output += "`|";
+			i++;
+		}
+		output += "`]'";
+		return output;
+	}
+	
+	/**
+	 * Check if a string is a list.
+	 * @param s The input string.
+	 * @return If it is a list.
+	 */
+	private boolean isList(String s) {
+		return s.startsWith("RSQLLIST");
+	}
+	
+	/**
+	 * Parse a generated list.
+	 * @param s The input string
+	 * @return The list generated from the string.
+	 */
+	private List<String> parseList(String s){
+		String in = s;
+		in = in.replace("RSQLLIST", "");
+		in = in.replace("[", "").replace("]", "");
+		String[] lists = in.split(Pattern.quote("|"));
+		if(lists.length < 1) return new ArrayList<>();
+		List<String> output = new ArrayList<>();
+		for(String st : lists) {
+			String process = st.replace("`", "");
+			process = process.replace("%$1$%", "'").replace("%$2$%", "`").replace("%$3$%", "\"").replace("%$4$%", "|")
+					.replace("%$5$%", "[").replace("%$6$%", "]");
+			output.add(process);
+		}
+		return output;
 	}
 
 }

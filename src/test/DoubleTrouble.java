@@ -4,10 +4,11 @@ import me.ryandw11.rsql.orm.Column;
 import me.ryandw11.rsql.orm.Table;
 
 @Table
-public class ExampleTable {
+public class DoubleTrouble {
 	@Column
-	public int id = 20;
+	public double idouble;
 	
 	@Column
-	public String name = "Cool Stuff";
+	public int id;
+
 }

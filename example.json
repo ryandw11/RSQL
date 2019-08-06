@@ -12,11 +12,18 @@
     ],
     "FunTable": [
       {
-        "name": "Test",
+        "name": "Yeet",
         "desc": [
-          "Yeet",
-          "Totaly!"
+          "This is [an] description\u0027s !",
+          "Yep | it i`s",
+          "Yea it is!"
         ]
+      }
+    ],
+    "DoubleTrouble": [
+      {
+        "idouble": 22.4,
+        "id": 4
       }
     ]
   }
