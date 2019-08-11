@@ -1,4 +1,9 @@
-package me.ryandw11.rsql.properties;
+package me.ryandw11.rsql.properties.subproperties;
+
+import java.io.File;
+
+import me.ryandw11.rsql.properties.Properties;
+import me.ryandw11.rsql.properties.RProperties;
 
 public class YAMLProperties implements RProperties{
 	
@@ -17,7 +22,11 @@ public class YAMLProperties implements RProperties{
 		return this;
 	}
 	
-	public String getFile() {
+	public File getFile() {
+		return new File(file);
+	}
+	
+	public String getName() {
 		return file;
 	}
 

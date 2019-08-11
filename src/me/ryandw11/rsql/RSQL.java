@@ -14,16 +14,19 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.sqlite.SQLiteException;
+
+import me.ryandw11.rsql.exists.RSQLExists;
 import me.ryandw11.rsql.orm.Column;
 import me.ryandw11.rsql.orm.Table;
-import me.ryandw11.rsql.proccess.EXCELProcessor;
+import me.ryandw11.rsql.proccess.ExcelProcessor;
 import me.ryandw11.rsql.proccess.JSONProcessor;
 import me.ryandw11.rsql.proccess.YAMLProcessor;
 import me.ryandw11.rsql.properties.Properties;
 import me.ryandw11.rsql.properties.RProperties;
-import me.ryandw11.rsql.properties.SQLProperties;
-import me.ryandw11.rsql.properties.JSONProperties;
-import me.ryandw11.rsql.properties.ExcelProperties;
+import me.ryandw11.rsql.properties.subproperties.ExcelProperties;
+import me.ryandw11.rsql.properties.subproperties.JSONProperties;
+import me.ryandw11.rsql.properties.subproperties.SQLProperties;
 
 /**
  * To handle SQL interaction for a special project.
@@ -55,15 +58,15 @@ public class RSQL {
 			proccessSQL(o);
 		}
 		if(type == Properties.JSON) {
-			JSONProcessor jspro = new JSONProcessor(((JSONProperties) op).getFile());
+			JSONProcessor jspro = new JSONProcessor(((JSONProperties) op).getName());
 			jspro.proccessJSON(o);
 		}
 		if(type == Properties.YAML) {
-			YAMLProcessor ympro = new YAMLProcessor();
+			YAMLProcessor ympro = new YAMLProcessor(op);
 			ympro.processYAML(o);
 		}
 		if(type == Properties.EXCEL) {
-			EXCELProcessor expro = new EXCELProcessor((ExcelProperties) op);
+			ExcelProcessor expro = new ExcelProcessor((ExcelProperties) op);
 			expro.processExcel(o);
 		}
 	}
@@ -79,18 +82,37 @@ public class RSQL {
 			return this.getSQL(clazz);
 		}
 		if(type == Properties.JSON) {
-			JSONProcessor jspro = new JSONProcessor(((JSONProperties) op).getFile());
+			JSONProcessor jspro = new JSONProcessor(((JSONProperties) op).getName());
 			return jspro.getJSON(clazz);
 		}
 		if(type == Properties.YAML) {
-			YAMLProcessor ympro = new YAMLProcessor();
+			YAMLProcessor ympro = new YAMLProcessor(op);
 			return ympro.getYAML(clazz);
 		}
 		if(type == Properties.EXCEL) {
-			EXCELProcessor expro = new EXCELProcessor((ExcelProperties) op);
+			ExcelProcessor expro = new ExcelProcessor((ExcelProperties) op);
 			return expro.getExcel(clazz);
 		}
 		return null;
+	}
+	
+	/**
+	 * Check if the RSQL filex exists.
+	 * @return If it exists.
+	 */
+	public boolean exists() {
+		RSQLExists rsqle = new RSQLExists();
+		return rsqle.exists(op);
+	}
+	
+	/**
+	 * Check to see if a table exists
+	 * @param c The table class
+	 * @return If the table exists.
+	 */
+	public boolean exists(Class<?> c) {
+		RSQLExists rsqle = new RSQLExists();
+		return rsqle.exists(op, c, this);
 	}
 	
 	private void proccessSQL(List<Object> o) {
@@ -138,8 +160,12 @@ public class RSQL {
 			List<Object> output = new ArrayList<>();
 			
 			List<Field> fo = this.getColumns(clazz);
-			
-			ResultSet rs = statement.executeQuery("select * from " + name);
+			ResultSet rs;
+			try {
+				rs = statement.executeQuery("select * from " + name);
+			}catch(SQLiteException ex) {
+				return null;
+			}
 			while(rs.next()) {
 				Constructor<?> ctor = clazz.getConstructor();
 				Object obj = ctor.newInstance();

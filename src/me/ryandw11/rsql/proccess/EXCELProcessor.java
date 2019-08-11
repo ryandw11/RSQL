@@ -19,17 +19,17 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import me.ryandw11.rsql.properties.ExcelProperties;
+import me.ryandw11.rsql.properties.subproperties.ExcelProperties;
 
 /**
  * Handle the Excel process for saving data.
  * @author Ryandw11
  *
  */
-public class EXCELProcessor {
+public class ExcelProcessor {
 	
 	private ExcelProperties ep;
-	public EXCELProcessor(ExcelProperties ep) {
+	public ExcelProcessor(ExcelProperties ep) {
 		this.ep = ep;
 	}
 	
@@ -64,7 +64,6 @@ public class EXCELProcessor {
         			Class<?> fclazz = f.get(o).getClass();
         			if(fclazz == Integer.class)
         				cell.setCellValue((int) f.get(o));
-        			System.out.println(f.get(o));
         			if (fclazz == String.class) 
         				cell.setCellValue((String) f.get(o));
         			if (fclazz == Double.class)
@@ -144,11 +143,14 @@ public class EXCELProcessor {
             		}
             		if(currentCell.getCellTypeEnum() == CellType.NUMERIC) {
             			double d = currentCell.getNumericCellValue();
-            			if(clazz.getFields()[i].getType() == Integer.class) {
+            			if(clazz.getFields()[i].getType() == int.class) {
             				clazz.getFields()[i].set(obj, (int) Math.round(d));
             			}
             			else if(clazz.getFields()[i].getType() == Float.class) {
             				clazz.getFields()[i].set(obj, (float) d);
+            			}
+            			else if(clazz.getFields()[i].getType() == Double.class) {
+            				clazz.getFields()[i].set(obj, (double) d);
             			}
             			else {
             				clazz.getFields()[i].set(obj, d);

@@ -1,10 +1,7 @@
 package me.ryandw11.rsql.proccess;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -16,14 +13,19 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
-import test.DoubleTrouble;
+import me.ryandw11.rsql.properties.RProperties;
 
 import java.util.LinkedHashMap;
 
 public class YAMLProcessor {
 	
+	private File fil;
+	public YAMLProcessor(RProperties op) {
+		fil = op.getFile();
+	}
+	
 	public void processYAML(List<Object> objs) {
-		File file = new File("test.yml");
+		File file = fil;
 		if(!file.exists()) {
 			try {
 				file.createNewFile();
@@ -58,14 +60,8 @@ public class YAMLProcessor {
 	}
 	
 	public List<Object> getYAML(Class<?> clazz) {
-		File file = new File("test.yml");
+		File file = fil;
 		if(!file.exists()) return null;
-		InputStream is = null;
-		try {
-			is = new FileInputStream(file);
-		} catch (FileNotFoundException e1) {
-			e1.printStackTrace();
-		}
 		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 		JSONTables jt;
 		try {
